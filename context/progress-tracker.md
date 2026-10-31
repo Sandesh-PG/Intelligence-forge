@@ -10,35 +10,17 @@ Update this file after every meaningful implementation change and at the end of 
 
 ## Current Goal
 
-- Finalize the project context documents and resolve the architecture decisions that block implementation.
-- Then create the feature breakdown and detailed feature specifications before coding.
+
 
 ## Completed
 
-- [x] Literature survey and research-gap analysis completed.
-- [x] Guide-approved project objectives documented.
-- [x] Current project overview and high-level data flow documented.
-- [x] Initial AI-agent workflow, architecture, code standards, UI context, and progress tracker drafted.
-- [x] Confirmed query routing direction: knowledge-base-first, sanitized web fallback.
-- [ ] Inspect the actual application repository and map its existing structure.
 
 ## In Progress
 
-- [ ] Review and approve the context files with the project team.
-- [ ] Confirm current repository and existing implementation state.
 
 ## Next Up
 
-1. Confirm application framework, backend framework, and current repository structure.
-2. Select the multimodal LLM/provider and define its privacy/data-processing constraints.
-3. Select embedding model and determine vector dimensions.
-4. Define entity/relationship schema and Neo4j graph conventions.
-5. Define Qdrant collection and payload design.
-6. Select web-search provider and review its data retention/logging behavior.
-7. Define query-sanitization policy and threat model.
-8. Define evidence-sufficiency evaluation method and test examples.
-9. Approve UI visual direction and design tokens.
-10. Create `context/specs/00-build-plan.md` and detailed feature specifications under `context/features/`.
+
 
 ## Open Questions
 
@@ -75,4 +57,5 @@ Update this file after every meaningful implementation change and at the end of 
 
 - The previous literature report contains older wording describing graph-first retrieval with vector fallback. This is superseded by the current guide-approved objective: Qdrant/KB similarity search first, evidence-sufficiency check, then sanitized web fallback.
 - The current project overview is based on the project owner's supplied context. No unconfirmed framework, provider, model, threshold, or UI theme has been invented.
+- Root `.gitignore` has been updated with full rules covering secrets, Python virtual environments & bytecode, Node/Next.js artifacts, upload directories, Neo4j, Qdrant, SQLite, OS files, and editor configs. All rule tests passed via `git check-ignore`.
 - Update this section with repository findings, implementation details, blockers, and the exact next action at the end of each session.
