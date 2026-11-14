@@ -4,9 +4,11 @@
 .env
 .env.*
 .env*.local
+.envrc
 !.env.example
 !.env.template
 !.env.*.example
+!.envrc.example
 
 # Credentials, keys, and certificates
 *.pem
@@ -17,11 +19,18 @@
 *.cer
 *.id_rsa
 id_rsa*
+id_ed25519*
+id_ecdsa*
+id_dsa*
 secrets/
 credentials.json
 service-account*.json
 google-credentials*.json
 client_secret*.json
+*secret*.json
+*token*.json
+.netrc
+.npmrc
 
 # ==========================================
 # Node.js / Next.js / Frontend
@@ -33,6 +42,17 @@ dist/
 build/
 .vercel/
 .turbo/
+.swc/
+.npm/
+
+# Caches and build artifacts
+.eslintcache
+.stylelintcache
+.prettiercache
+*.tsbuildinfo
+next-env.d.ts
+
+# Package manager logs & temporary files
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -46,7 +66,11 @@ lerna-debug.log*
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
-*.tsbuildinfo
+.yarn-integrity
+
+# Frontend testing & coverage
+coverage/
+.nyc_output/
 
 # ==========================================
 # Python / Backend
@@ -77,9 +101,16 @@ venv/
 .venv/
 env/
 ENV/
+env.*/
+.venv.*/
+venv.*/
 env.bak/
 venv.bak/
+
+# Package installer caches
 pip-wheel-metadata/
+.pip-cache/
+.uv/
 
 # Testing, coverage & linting
 .pytest_cache/
@@ -88,25 +119,32 @@ pip-wheel-metadata/
 .coverage
 .coverage.*
 htmlcov/
+coverage.xml
+coverage.json
+*.cover
+*.py,cover
 .tox/
 .nox/
 .hypothesis/
 .pytype/
 .pyre/
 .cache/
+.benchmarks/
 
 # Jupyter Notebooks / IPython
 .ipynb_checkpoints/
 *-checkpoint.ipynb
+.ipython/
 
-# Celery / background workers
+# Tooling / background workers
+.ropeproject/
 celerybeat-schedule
 celerybeat.pid
 
 # ==========================================
 # Uploaded research papers & private data
 # ==========================================
-# Privacy Invariant: Never commit uploaded papers or extracted data
+# Privacy Invariant: Never commit uploaded papers, private data, or extractions
 uploads/
 backend/uploads/
 backend/storage/
@@ -120,7 +158,18 @@ extracted/
 *.ppt
 *.xlsx
 *.xls
+*.csv
+*.tsv
+*.epub
 *.extracted.json
+
+# Large datasets, model weights & binary dumps
+*.parquet
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+*.feather
 
 # ==========================================
 # Databases and local persistence
@@ -145,8 +194,12 @@ qdrant_data/
 *.db-shm
 postgres/data/
 
-# Redis / Vector caches
+# Vector / Cache stores
 chroma_data/
+lancedb/
+.lancedb/
+milvus_data/
+weaviate_data/
 dump.rdb
 
 # ==========================================
@@ -158,22 +211,43 @@ docker-compose.override.yml
 # ==========================================
 # IDE and editor configurations
 # ==========================================
+# Visual Studio Code
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
 !.vscode/launch.json
+
+# Visual Studio (Windows)
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# JetBrains (PyCharm, WebStorm, IDEA)
 .idea/
+*.iws
+*.iml
+
+# Other editors
 *.swp
 *.swo
 *~
 *.sublime-project
 *.sublime-workspace
 *.code-workspace
+\#*\#
+.\#*
 
-# AI coding assistant scratch & caches
+# AI coding assistant scratch, logs & caches
 .gemini/
 .antigravity/
 .cursor/
+.claude/
+.openai/
+.copilot/
+scratch/
+.scratch/
 
 # ==========================================
 # Operating system files
@@ -183,6 +257,8 @@ docker-compose.override.yml
 .AppleDouble
 .LSOverride
 ._*
+.Spotlight-V100
+.Trashes
 
 # Windows
 Thumbs.db
@@ -191,13 +267,15 @@ ehthumbs.db
 ehthumbs_vista.db
 desktop.ini
 $RECYCLE.BIN/
+*.dmp
+*.stackdump
 
 # Linux
 .fuse_hidden*
 .directory
 
 # ==========================================
-# Logs and temporary files
+# Logs, dumps, and temporary files
 # ==========================================
 *.log
 logs/
@@ -205,3 +283,8 @@ logs/
 *.bak
 temp/
 tmp/
+.temp/
+.tmp/
+*.pid
+*.seed
+*.crash
