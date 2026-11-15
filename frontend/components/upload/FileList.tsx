@@ -7,6 +7,7 @@
 
 import type { FileUploadResult } from "@/services/uploadService";
 import type { SelectedFile } from "./UploadZone";
+import { DocumentExtractionStatus } from "./DocumentExtractionStatus";
 
 interface FileListProps {
   files: SelectedFile[];
@@ -157,6 +158,16 @@ export default function FileList({
               >
                 Retry
               </button>
+            )}
+
+            {/* Live extraction status polling for accepted uploads */}
+            {result?.status === "accepted" && (result.document_id || result.doc_id) && (
+              <div className="ml-7">
+                <DocumentExtractionStatus
+                  docId={(result.document_id || result.doc_id)!}
+                  originalFilename={sf.file.name}
+                />
+              </div>
             )}
           </li>
         );

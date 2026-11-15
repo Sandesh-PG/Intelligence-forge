@@ -288,3 +288,11 @@ tmp/
 *.pid
 *.seed
 *.crash
+
+# Private uploaded & extracted research artifacts (Feature 01 & Feature 02)
+backend/storage/uploads/*
+!backend/storage/uploads/.gitignore
+backend/storage/extracted/*
+!backend/storage/extracted/.gitignore
+backend/storage/metadata.json
+backend/storage/*.tmp

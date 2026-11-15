@@ -16,13 +16,14 @@ The approved routing order is **knowledge base first, web fallback second**. Qdr
 | Frontend | Next.js, TypeScript, Tailwind CSS | Decided and initialized |
 | Backend/API | Python, FastAPI | Decided; initial application created |
 | Frontend/backend communication | REST API | Agreed |
-| Knowledge graph | Neo4j | Selected; integration pending |
+| Knowledge graph | Neo4j | Selected; integration pending (Feature 03) |
 | Vector database | Qdrant | Selected; integration pending |
-| Multimodal processing | Not selected | Decide before document extraction implementation |
+| Document parsing & layout extraction | Docling (local) | Decided; local layout, reading order, and table parser |
+| Structured extraction LLM | Ollama (local) | Decided; local structured JSON extraction (`OLLAMA_MODEL`) |
 | Embedding model | Not selected | Decide before vector indexing implementation |
 | Web search | Provider not selected | Decide before web fallback implementation |
-| File storage | Not selected | Decide before persistent upload implementation |
-| Background processing | Not selected | Decide when ingestion execution requirements are clear |
+| File storage | Local private filesystem (`backend/storage/`) | Decided; `uploads/` for PDFs, `extracted/` for validated JSON artifacts |
+| Background processing | FastAPI `BackgroundTasks` | Decided; asynchronous extraction triggered on upload |
 | Authentication | Not selected | Decide if required by the agreed first-version scope |
 
 Add dependencies and infrastructure only when the active feature requires them.
@@ -160,12 +161,12 @@ KB-grounded answer       Privacy policy check
 
 | Data | Intended location | Decision status |
 |---|---|---|
-| Original uploaded papers | Private file storage | Pending |
-| Document metadata and processing status | Backend persistence | Detailed store/schema pending |
-| Extracted entities | Neo4j | Selected |
-| Extracted relationships | Neo4j | Selected |
+| Original uploaded papers | Local private filesystem (`backend/storage/uploads/`) | Decided (Feature 01) |
+| Validated extraction artifacts & summaries | Local private filesystem (`backend/storage/extracted/{doc_id}.json`) | Decided (Feature 02 intermediate store) |
+| Document metadata and processing status | Local metadata store (`backend/storage/metadata.json`) | Decided (Feature 02) |
+| Extracted entities | Neo4j | Selected (Feature 03) |
+| Extracted relationships | Neo4j | Selected (Feature 03) |
 | Entity/relationship embeddings | Qdrant | Selected |
-| Summaries | Persistence location | Pending |
 | User questions and answers | Persistence/retention | Deferred until needed |
 | Web-search results | Transient by default unless otherwise approved | Default behavior |
 | Secrets/API keys | Server-side environment or approved secret manager | Required security practice |
@@ -193,7 +194,7 @@ Required rules:
 - Test outbound requests using canary phrases from private test documents.
 - Verify actual network paths and provider behavior before making privacy claims.
 
-**Important unresolved boundary:** the project has not yet selected a multimodal model or decided whether document processing is local or hosted. A hosted model may receive uploaded document content. This must be decided explicitly before implementing ingestion; it must not be assumed to satisfy a strict local-only privacy requirement.
+**Resolved local ingestion boundary (Feature 02):** Document parsing (`Docling`) and structured entity/relationship extraction (`Ollama` via `OLLAMA_BASE_URL`) execute 100% locally on the host machine. Uploaded PDF bytes, parsed tables, summaries, and extracted JSON artifacts never leave the local machine during ingestion.
 
 ## 7. System Boundaries
 

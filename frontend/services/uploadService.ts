@@ -1,5 +1,6 @@
 /**
- * Upload service — communicates with the FastAPI backend's POST /api/upload endpoint.
+ * Upload service — communicates with the FastAPI backend's POST /api/upload endpoint
+ * and document extraction status endpoints.
  * All API request logic is kept here, away from UI components.
  */
 
@@ -10,6 +11,7 @@ export type UploadStatus = "accepted" | "rejected";
 export interface FileUploadResult {
   original_filename: string;
   document_id: string | null;
+  doc_id?: string | null;
   status: UploadStatus;
   rejection_reason: string | null;
 }
@@ -52,3 +54,48 @@ export async function uploadDocuments(
   return response.json() as Promise<BatchUploadResponse>;
 }
 
+export type ExtractionJobStatus =
+  | "uploaded"
+  | "queued"
+  | "parsing"
+  | "extracting"
+  | "completed"
+  | "failed";
+
+export interface DocumentStatusResponse {
+  doc_id: string;
+  original_filename: string;
+  status: ExtractionJobStatus;
+  page_count: number | null;
+  entity_count: number | null;
+  relationship_count: number | null;
+  error_code: string | null;
+  error_message: string | null;
+  updated_at: string;
+}
+
+export async function getDocumentStatus(docId: string): Promise<DocumentStatusResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/documents/${encodeURIComponent(docId)}/status`,
+    { cache: "no-store" }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch document status (${response.status})`);
+  }
+
+  return response.json() as Promise<DocumentStatusResponse>;
+}
+
+export async function triggerDocumentExtraction(docId: string): Promise<DocumentStatusResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/documents/${encodeURIComponent(docId)}/extract`,
+    { method: "POST" }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to re-trigger extraction (${response.status})`);
+  }
+
+  return response.json() as Promise<DocumentStatusResponse>;
+}

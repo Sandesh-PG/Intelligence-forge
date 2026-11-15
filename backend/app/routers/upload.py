@@ -2,8 +2,8 @@
 Upload router — POST /api/upload
 
 Accepts a batch of PDF files (up to 3, each ≤ 20 MB, total ≤ 60 MB),
-validates every file independently, stores accepted files, and returns
-an individual result for every file in the batch.
+validates every file independently, stores accepted files, queues background
+knowledge extraction, and returns an individual result for every file in the batch.
 
 Rules enforced on the backend (not only in the UI):
 - Maximum 3 files per batch.
@@ -12,13 +12,16 @@ Rules enforced on the backend (not only in the UI):
 - Per-file validation: extension, MIME type, PDF header, readability,
   password-protection check.
 - One invalid file does not reject the entire batch.
+- Automatically triggers asynchronous document parsing and extraction on accepted files.
 """
 
 import logging
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 
+from app.core.config import settings
 from app.schemas.upload import BatchUploadResponse, FileUploadResult, UploadStatus
+from app.services.extraction_orchestrator import default_orchestrator as orchestrator
 from app.services.file_validator import MAX_FILE_SIZE_BYTES, validate_pdf
 from app.services.storage import store_pdf
 
@@ -32,6 +35,7 @@ MAX_BATCH_SIZE_BYTES = 60 * 1024 * 1024  # 60 MB
 
 @router.post("/upload", response_model=BatchUploadResponse, status_code=200)
 async def upload_documents(
+    background_tasks: BackgroundTasks,
     files: list[UploadFile] = File(default=[], description="PDF files to upload (max 3)"),
 ) -> BatchUploadResponse:
     """
@@ -39,8 +43,8 @@ async def upload_documents(
 
     - Validates each file independently.
     - Stores accepted files in the private backend storage directory.
+    - Triggers asynchronous background extraction for accepted files.
     - Returns an individual result for every file in the batch.
-    - Does not trigger extraction, LLM processing, Neo4j, or Qdrant operations.
     """
     # --- Batch-level checks (reject the entire request, not individual files) ---
 
@@ -108,7 +112,7 @@ async def upload_documents(
 
         # Persist the accepted file
         try:
-            metadata = store_pdf(filename, file_bytes)
+            metadata = store_pdf(filename, file_bytes, destination_dir=settings.upload_storage_dir)
         except OSError:
             logger.exception("Failed to store uploaded file '%s'", filename)
             results.append(
@@ -119,6 +123,10 @@ async def upload_documents(
                 )
             )
             continue
+
+        # Trigger background extraction pipeline
+        orchestrator.queue_document(doc_id=metadata.document_id, original_filename=filename)
+        background_tasks.add_task(orchestrator.run_extraction, metadata.document_id, filename)
 
         results.append(
             FileUploadResult(

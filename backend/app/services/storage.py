@@ -16,21 +16,17 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+from app.core.config import settings
 from app.schemas.upload import DocumentMetadata, UploadStatus
 
 logger = logging.getLogger(__name__)
 
-# Private storage directory — relative to the project root when the backend
-# process is started from the repository root, or from the backend/ directory.
-# The path is resolved at import time so the service fails fast if the
-# directory cannot be created.
-_STORAGE_DIR = Path(__file__).resolve().parents[3] / "backend" / "storage" / "uploads"
 
-
-def _ensure_storage_dir() -> Path:
+def _ensure_storage_dir(destination_dir: Path | None = None) -> Path:
     """Create the storage directory if it does not exist and return its path."""
-    _STORAGE_DIR.mkdir(parents=True, exist_ok=True)
-    return _STORAGE_DIR
+    target = destination_dir or settings.upload_storage_dir
+    target.mkdir(parents=True, exist_ok=True)
+    return target
 
 
 # In-memory store: document_id -> DocumentMetadata
@@ -38,7 +34,11 @@ def _ensure_storage_dir() -> Path:
 _metadata_store: dict[str, DocumentMetadata] = {}
 
 
-def store_pdf(original_filename: str, file_bytes: bytes) -> DocumentMetadata:
+def store_pdf(
+    original_filename: str,
+    file_bytes: bytes,
+    destination_dir: Path | None = None,
+) -> DocumentMetadata:
     """
     Persist an accepted PDF to local storage and record its metadata.
 
@@ -46,6 +46,8 @@ def store_pdf(original_filename: str, file_bytes: bytes) -> DocumentMetadata:
         original_filename: The client-provided filename (used only as metadata,
                            never as the stored filename).
         file_bytes: Validated PDF bytes ready to write.
+        destination_dir: Directory where the PDF should be stored. Defaults
+                         to settings.upload_storage_dir.
 
     Returns:
         DocumentMetadata for the stored file.
@@ -53,7 +55,7 @@ def store_pdf(original_filename: str, file_bytes: bytes) -> DocumentMetadata:
     Raises:
         OSError: If the file cannot be written to disk.
     """
-    storage_dir = _ensure_storage_dir()
+    storage_dir = _ensure_storage_dir(destination_dir)
 
     document_id = str(uuid.uuid4())
     # Stored filename is the document ID with a .pdf extension.
