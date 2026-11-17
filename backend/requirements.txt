@@ -9,3 +9,4 @@ docling>=2.15.0
 httpx>=0.27.0
 # Feature 02: Centralized typed environment configuration
 pydantic-settings>=2.5.0
+neo4j>=5.28.0

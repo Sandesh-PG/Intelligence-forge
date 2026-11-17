@@ -38,6 +38,7 @@ def store_pdf(
     original_filename: str,
     file_bytes: bytes,
     destination_dir: Path | None = None,
+    session_id: str | None = None,
 ) -> DocumentMetadata:
     """
     Persist an accepted PDF to local storage and record its metadata.
@@ -48,6 +49,7 @@ def store_pdf(
         file_bytes: Validated PDF bytes ready to write.
         destination_dir: Directory where the PDF should be stored. Defaults
                          to settings.upload_storage_dir.
+        session_id: Optional chat session ID the file was uploaded in.
 
     Returns:
         DocumentMetadata for the stored file.
@@ -73,6 +75,7 @@ def store_pdf(
         file_size_bytes=len(file_bytes),
         upload_timestamp=datetime.now(tz=timezone.utc),
         status=UploadStatus.accepted,
+        session_id=session_id,
     )
     _metadata_store[document_id] = metadata
     return metadata
@@ -81,6 +84,14 @@ def store_pdf(
 def get_metadata(document_id: str) -> DocumentMetadata | None:
     """Return stored metadata for a document_id, or None if not found."""
     return _metadata_store.get(document_id)
+
+
+def delete_metadata(document_id: str) -> bool:
+    """Remove stored metadata for a document_id from the in-memory store."""
+    if document_id in _metadata_store:
+        del _metadata_store[document_id]
+        return True
+    return False
 
 
 def list_metadata() -> list[DocumentMetadata]:

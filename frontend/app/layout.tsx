@@ -13,17 +13,23 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Intelligence Forge",
-  description: "Multimodal research knowledge retrieval and assistant",
+  title: "Intelligence Forge — GraphRAG Research Studio",
+  description: "Multimodal research knowledge retrieval and interactive knowledge graph explorer",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="h-full bg-[#09090b] text-[#f4f4f5] overflow-hidden antialiased">
+        {children}
+      </body>
     </html>
   );
 }

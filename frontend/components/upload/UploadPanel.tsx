@@ -19,7 +19,12 @@ import { uploadDocuments } from "@/services/uploadService";
 import UploadZone, { type SelectedFile } from "./UploadZone";
 import FileList from "./FileList";
 
-export default function UploadPanel() {
+interface UploadPanelProps {
+  sessionId?: string;
+  onUploadSuccess?: () => void;
+}
+
+export default function UploadPanel({ sessionId, onUploadSuccess }: UploadPanelProps = {}) {
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [results, setResults] = useState<Map<string, FileUploadResult>>(
     new Map()
@@ -62,7 +67,10 @@ export default function UploadPanel() {
     setUploading(true);
 
     try {
-      const response = await uploadDocuments(valid.map((sf) => sf.file));
+      const response = await uploadDocuments(
+        valid.map((sf) => sf.file),
+        sessionId
+      );
 
       // Map results back to selected files by index into the valid subset
       const nextResults = new Map(results);
@@ -74,6 +82,9 @@ export default function UploadPanel() {
         validIndex++;
       });
       setResults(nextResults);
+      if (onUploadSuccess) {
+        onUploadSuccess();
+      }
     } catch (err) {
       setBatchError(
         err instanceof Error ? err.message : "Upload failed. Please try again."

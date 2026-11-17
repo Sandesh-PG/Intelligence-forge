@@ -17,10 +17,12 @@ Rules enforced on the backend (not only in the UI):
 
 import logging
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
+from typing import Optional
+from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
 
 from app.core.config import settings
 from app.schemas.upload import BatchUploadResponse, FileUploadResult, UploadStatus
+from app.services.chat_store import chat_store
 from app.services.extraction_orchestrator import default_orchestrator as orchestrator
 from app.services.file_validator import MAX_FILE_SIZE_BYTES, validate_pdf
 from app.services.storage import store_pdf
@@ -37,6 +39,7 @@ MAX_BATCH_SIZE_BYTES = 60 * 1024 * 1024  # 60 MB
 async def upload_documents(
     background_tasks: BackgroundTasks,
     files: list[UploadFile] = File(default=[], description="PDF files to upload (max 3)"),
+    session_id: Optional[str] = Form(default=None),
 ) -> BatchUploadResponse:
     """
     Upload and validate a batch of research-paper PDFs.
@@ -44,6 +47,7 @@ async def upload_documents(
     - Validates each file independently.
     - Stores accepted files in the private backend storage directory.
     - Triggers asynchronous background extraction for accepted files.
+    - Binds uploaded documents to the active session_id if provided.
     - Returns an individual result for every file in the batch.
     """
     # --- Batch-level checks (reject the entire request, not individual files) ---
@@ -82,6 +86,7 @@ async def upload_documents(
     # --- Per-file validation and storage ---
 
     results: list[FileUploadResult] = []
+    accepted_doc_ids: list[str] = []
 
     for filename, file_bytes in file_contents:
         # Individual size check (also enforced here, not only at batch level)
@@ -94,6 +99,7 @@ async def upload_documents(
                     rejection_reason=(
                         f"File size {size_mb:.1f} MB exceeds the 20 MB per-file limit."
                     ),
+                    session_id=session_id,
                 )
             )
             continue
@@ -106,13 +112,19 @@ async def upload_documents(
                     original_filename=filename,
                     status=UploadStatus.rejected,
                     rejection_reason=validation.rejection_reason,
+                    session_id=session_id,
                 )
             )
             continue
 
         # Persist the accepted file
         try:
-            metadata = store_pdf(filename, file_bytes, destination_dir=settings.upload_storage_dir)
+            metadata = store_pdf(
+                filename,
+                file_bytes,
+                destination_dir=settings.upload_storage_dir,
+                session_id=session_id,
+            )
         except OSError:
             logger.exception("Failed to store uploaded file '%s'", filename)
             results.append(
@@ -120,20 +132,37 @@ async def upload_documents(
                     original_filename=filename,
                     status=UploadStatus.rejected,
                     rejection_reason="Server error: the file could not be saved. Please try again.",
+                    session_id=session_id,
                 )
             )
             continue
 
         # Trigger background extraction pipeline
-        orchestrator.queue_document(doc_id=metadata.document_id, original_filename=filename)
+        orchestrator.queue_document(
+            doc_id=metadata.document_id,
+            original_filename=filename,
+            session_id=session_id,
+        )
         background_tasks.add_task(orchestrator.run_extraction, metadata.document_id, filename)
 
+        accepted_doc_ids.append(metadata.document_id)
         results.append(
             FileUploadResult(
                 original_filename=filename,
                 document_id=metadata.document_id,
                 status=UploadStatus.accepted,
+                session_id=session_id,
             )
         )
 
-    return BatchUploadResponse(results=results)
+    # If session_id is provided, automatically bind accepted doc_ids to this chat session
+    if session_id and accepted_doc_ids:
+        session = chat_store.get_session(session_id)
+        if session:
+            combined_doc_ids = list(session.doc_ids)
+            for d_id in accepted_doc_ids:
+                if d_id not in combined_doc_ids:
+                    combined_doc_ids.append(d_id)
+            chat_store.update_session_docs(session_id, combined_doc_ids)
+
+    return BatchUploadResponse(results=results, session_id=session_id)

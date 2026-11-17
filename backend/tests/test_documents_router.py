@@ -85,6 +85,21 @@ def _make_dummy_extraction(doc_id: str, original_filename: str) -> DocumentExtra
     )
 
 
+class TestListDocumentsRouter:
+    def test_list_documents_returns_array(self):
+        resp = client.get("/api/documents")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data, list)
+        if len(data) > 0:
+            doc = data[0]
+            assert "doc_id" in doc
+            assert "filename" in doc
+            assert "extraction_status" in doc
+            assert "entity_count" in doc
+            assert "relationship_count" in doc
+
+
 class TestDocumentStatusRouter:
     def test_nonexistent_document_returns_404(self):
         resp = client.get("/api/documents/nonexistent-doc-999/status")
@@ -245,3 +260,40 @@ class TestOrchestratorErrorTransitions:
         assert status is not None
         assert status.status == ExtractionJobStatus.FAILED
         assert status.error_code == "OLLAMA_TIMEOUT"
+
+
+class TestDeleteDocumentRouter:
+    def test_delete_nonexistent_document_returns_404(self):
+        resp = client.delete("/api/documents/nonexistent-doc-delete-999")
+        assert resp.status_code == 404
+        assert resp.json()["detail"]["code"] == "DOCUMENT_NOT_FOUND"
+
+    def test_delete_existing_document_success(self, tmp_path):
+        doc_id = "doc-to-delete-123"
+        filename = "delete_me.pdf"
+
+        # Create dummy pdf file in upload dir
+        pdf_file = default_orchestrator.upload_dir / f"{doc_id}.pdf"
+        pdf_file.write_bytes(b"%PDF-1.4 test")
+
+        # Create dummy extracted json
+        json_file = default_orchestrator.extracted_dir / f"{doc_id}.json"
+        json_file.write_text('{"doc_id": "doc-to-delete-123", "entities": []}', encoding="utf-8")
+
+        # Set status in metadata store
+        default_orchestrator.metadata_store.upsert_status(
+            doc_id=doc_id,
+            original_filename=filename,
+            status=ExtractionJobStatus.COMPLETED,
+        )
+
+        resp = client.delete(f"/api/documents/{doc_id}")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["doc_id"] == doc_id
+        assert data["deleted"] is True
+
+        # Verify files and metadata are cleaned up
+        assert not pdf_file.exists()
+        assert not json_file.exists()
+        assert default_orchestrator.metadata_store.get_status(doc_id) is None

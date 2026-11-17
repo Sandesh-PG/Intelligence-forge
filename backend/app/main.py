@@ -1,19 +1,34 @@
+import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.routers import documents, upload
+from app.routers import chat, documents, graph, upload
+from app.services.neo4j_client import neo4j_driver
 
-# Ensure storage directories exist at application startup
-settings.ensure_storage_dirs()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Ensure storage dirs & verify/initialize Neo4j driver if configured
+    settings.ensure_storage_dirs()
+    if settings.neo4j_uri and not os.environ.get("PYTEST_CURRENT_TEST"):
+        try:
+            neo4j_driver.initialize()
+        except Exception as e:
+            print(f"Warning: Failed to initialize Neo4j driver on startup: {e}")
+    yield
+    # Shutdown: Close Neo4j driver
+    neo4j_driver.close()
+
 
 app = FastAPI(
     title="Intelligence Forge API",
     description="Multimodal Research Knowledge Retrieval System",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Allow the Next.js dev server to call the API during development.
-# Restrict origins in production when the deployment target is known.
 origins = [origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()]
 app.add_middleware(
     CORSMiddleware,
@@ -25,6 +40,8 @@ app.add_middleware(
 
 app.include_router(upload.router)
 app.include_router(documents.router)
+app.include_router(graph.router)
+app.include_router(chat.router)
 
 
 @app.get("/")

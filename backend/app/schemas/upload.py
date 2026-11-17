@@ -21,12 +21,14 @@ class FileUploadResult(BaseModel):
     document_id: Optional[str] = None
     status: UploadStatus
     rejection_reason: Optional[str] = None
+    session_id: Optional[str] = None
 
 
 class BatchUploadResponse(BaseModel):
     """Response body for the POST /api/upload endpoint."""
 
     results: list[FileUploadResult]
+    session_id: Optional[str] = None
 
 
 class DocumentMetadata(BaseModel):
@@ -38,4 +40,5 @@ class DocumentMetadata(BaseModel):
     file_size_bytes: int
     upload_timestamp: datetime
     status: UploadStatus
+    session_id: Optional[str] = None
 

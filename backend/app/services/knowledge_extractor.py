@@ -7,6 +7,7 @@ from app.schemas.extraction import (
     EntityLabel,
     EntityProvenance,
     ExtractedEntity,
+    ExtractedPage,
     ExtractedRelationship,
     RawChunkExtraction,
     RelationType,
@@ -69,11 +70,13 @@ class LocalKnowledgeExtractor:
             raw_extraction = self._extract_chunk_with_retry(chunk)
             chunk_results.append((chunk, raw_extraction))
 
+        raw_pages = getattr(parsed_doc, "pages", [])
         return self.normalize_and_validate(
             doc_id=doc_id,
             original_filename=original_filename,
             page_count=parsed_doc.page_count,
             chunk_results=chunk_results,
+            pages=raw_pages,
         )
 
     def _extract_chunk_with_retry(self, chunk: ParsedChunk) -> RawChunkExtraction:
@@ -139,6 +142,7 @@ class LocalKnowledgeExtractor:
         original_filename: str,
         page_count: int,
         chunk_results: list[tuple[ParsedChunk, RawChunkExtraction]],
+        pages: list[dict] | None = None,
     ) -> DocumentExtractionResult:
         warnings: list[str] = []
         entities_by_id: dict[str, ExtractedEntity] = {}
@@ -235,12 +239,23 @@ class LocalKnowledgeExtractor:
         if len(combined_summary) < 20:
             combined_summary = f"Extracted structured knowledge from {original_filename}."
 
+        extracted_pages = []
+        if pages:
+            for p in pages:
+                if isinstance(p, dict) and "page_number" in p:
+                    extracted_pages.append(
+                        ExtractedPage(page_number=int(p["page_number"]), text=str(p.get("text", "")))
+                    )
+                elif isinstance(p, ExtractedPage):
+                    extracted_pages.append(p)
+
         return DocumentExtractionResult(
             doc_id=doc_id,
             original_filename=original_filename,
             model_id=self.model,
             page_count=page_count,
             summary=combined_summary,
+            pages=extracted_pages,
             entities=list(entities_by_id.values()),
             relationships=list(relationships_by_id.values()),
             warnings=warnings,

@@ -57,13 +57,20 @@ class ExtractedRelationship(BaseModel):
     page_number: int = Field(..., ge=1)
 
 
+class ExtractedPage(BaseModel):
+    page_number: int = Field(..., ge=1)
+    text: str = Field(default="")
+
+
 class DocumentExtractionResult(BaseModel):
     schema_version: Literal["1.0"] = "1.0"
     doc_id: str
     original_filename: str
+    source_filename: str = ""
     model_id: str
     page_count: int = Field(..., ge=1)
     summary: str = Field(..., min_length=20)
+    pages: list[ExtractedPage] = Field(default_factory=list)
     entities: list[ExtractedEntity]
     relationships: list[ExtractedRelationship]
     warnings: list[str] = Field(default_factory=list)
@@ -79,6 +86,7 @@ class DocumentStatusResponse(BaseModel):
     error_code: str | None = None
     error_message: str | None = None
     updated_at: datetime
+    session_id: str | None = None
 
 
 # --- Internal Raw LLM Output Contracts (Before Canonical ID Normalization) ---

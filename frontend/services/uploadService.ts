@@ -14,25 +14,32 @@ export interface FileUploadResult {
   doc_id?: string | null;
   status: UploadStatus;
   rejection_reason: string | null;
+  session_id?: string | null;
 }
 
 export interface BatchUploadResponse {
   results: FileUploadResult[];
+  session_id?: string | null;
 }
 
 /**
  * Submit a batch of File objects to the backend upload endpoint.
  *
  * @param files - Array of File objects selected or dropped by the user.
+ * @param sessionId - Optional chat session ID to bind uploads to.
  * @returns Parsed BatchUploadResponse from the backend.
  * @throws Error with a human-readable message on network or server failure.
  */
 export async function uploadDocuments(
-  files: File[]
+  files: File[],
+  sessionId?: string
 ): Promise<BatchUploadResponse> {
   const formData = new FormData();
   for (const file of files) {
     formData.append("files", file);
+  }
+  if (sessionId) {
+    formData.append("session_id", sessionId);
   }
 
   const response = await fetch(`${API_BASE_URL}/api/upload`, {

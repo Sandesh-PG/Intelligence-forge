@@ -150,7 +150,9 @@ backend/uploads/
 backend/storage/
 storage/
 data/
+backend/data/
 extracted/
+backend/extracted/
 *.pdf
 *.docx
 *.doc
@@ -163,6 +165,10 @@ extracted/
 *.epub
 *.extracted.json
 
+# Session exports and markdown reports (Feature 08)
+research-session-*.md
+*.session.md
+
 # Large datasets, model weights & binary dumps
 *.parquet
 *.h5
@@ -170,6 +176,14 @@ extracted/
 *.pkl
 *.pickle
 *.feather
+*.safetensors
+*.gguf
+*.bin
+*.onnx
+models/
+.cache/
+docling_cache/
+.docling/
 
 # ==========================================
 # Databases and local persistence
@@ -185,13 +199,15 @@ qdrant/storage/
 qdrant/snapshots/
 qdrant_data/
 
-# Relational & SQLite databases
+# Relational & SQLite databases (Chat store & sessions)
 *.db
 *.sqlite
 *.sqlite3
 *.db-journal
 *.db-wal
 *.db-shm
+backend/data/chats.db
+backend/data/*.db*
 postgres/data/
 
 # Vector / Cache stores
@@ -289,10 +305,15 @@ tmp/
 *.seed
 *.crash
 
-# Private uploaded & extracted research artifacts (Feature 01 & Feature 02)
+# Private uploaded & extracted research artifacts (Features 01–08)
 backend/storage/uploads/*
 !backend/storage/uploads/.gitignore
+!backend/storage/uploads/.gitkeep
 backend/storage/extracted/*
 !backend/storage/extracted/.gitignore
+!backend/storage/extracted/.gitkeep
 backend/storage/metadata.json
 backend/storage/*.tmp
+backend/data/*
+!backend/data/.gitignore
+!backend/data/.gitkeep
